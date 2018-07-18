@@ -172,9 +172,9 @@ endif()
 # ==============================================================================
 # IMAGE IO detection
 # ==============================================================================
-find_package(JPEG QUIET)
-find_package(PNG QUIET)
-find_package(TIFF QUIET)
+find_package(JPEG REQUIRED)
+find_package(PNG REQUIRED)
+find_package(TIFF REQUIRED)
 
 # Folders
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
@@ -248,14 +248,7 @@ endif()
 # ==============================================================================
 # Eigen
 # ==============================================================================
-# - internal by default,
-# - external if EIGEN_INCLUDE_DIR_HINTS is defined
-# ==============================================================================
-if (NOT DEFINED EIGEN_INCLUDE_DIR_HINTS)
-  set(EIGEN_INCLUDE_DIR_HINTS ${CMAKE_CURRENT_SOURCE_DIR}/third_party/eigen)
-  set(OpenMVG_USE_INTERNAL_EIGEN ON)
-endif()
-find_package(Eigen QUIET)
+find_package(Eigen REQUIRED)
 if (EIGEN_FOUND)
   include_directories(${EIGEN_INCLUDE_DIRS})
 endif (EIGEN_FOUND)
@@ -263,35 +256,12 @@ endif (EIGEN_FOUND)
 # ==============================================================================
 # Ceres
 # ==============================================================================
-# - internal by default (ceres-solver+cxsparse+miniglog),
-# - external if CERES_DIR_HINTS and find_package return a valid Ceres setup
-# ==============================================================================
-find_package(Ceres QUIET HINTS ${CERES_DIR_HINTS})
-if (NOT Ceres_FOUND)
-  set(OpenMVG_USE_INTERNAL_CERES ON)
-  set(CERES_INCLUDE_DIRS
-    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/ceres-solver/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/ceres-solver/internal/ceres/miniglog
-    ${PROJECT_BINARY_DIR}/third_party/ceres-solver/config)
-    FILE(READ "${CMAKE_CURRENT_SOURCE_DIR}/third_party/ceres-solver/VERSION" CERES_CONFIG)
-    STRING(REGEX REPLACE "version ([0-9.]+).*" "\\1" CERES_VERSION ${CERES_CONFIG})
-  set(CERES_LIBRARIES ceres cxsparse)
-endif()
+find_package(Ceres REQUIRED HINTS ${CERES_DIR_HINTS})
 
 # ==============================================================================
 # Flann
 # ==============================================================================
-# - internal by default (flann),
-# - external if FLANN_INCLUDE_DIR_HINTS and a valid Flann setup is found
-# ==============================================================================
-if (NOT DEFINED FLANN_INCLUDE_DIR_HINTS)
-  set(FLANN_INCLUDE_DIR_HINTS ${CMAKE_CURRENT_SOURCE_DIR}/third_party/flann/src/cpp)
-  set(OpenMVG_USE_INTERNAL_FLANN ON)
-endif()
-find_package(Flann QUIET)
-if (NOT FLANN_FOUND OR OpenMVG_USE_INTERNAL_FLANN)
-  set(FLANN_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/third_party/flann/src/cpp)
-endif()
+find_package(Flann REQUIRED)
 
 # ==============================================================================
 # CoinUtils
