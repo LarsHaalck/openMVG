@@ -1,38 +1,68 @@
-FROM ubuntu:14.04
+FROM larshaalck/ceres:latest
 
-# Add openMVG binaries to path
-ENV PATH $PATH:/opt/openMVG_Build/install/bin
+FROM alpine:edge
 
-# Get dependencies
-RUN apt-get update && apt-get install -y \
-  build-essential \
-  graphviz \
-  git \
-  gcc-4.8 \ 
-  gcc-4.8-multilib \  
-  libpng-dev \
-  libjpeg-dev \
-  libtiff-dev \
-  libxxf86vm1 \
-  libxxf86vm-dev \
-  libxi-dev \
-  libxrandr-dev \
-  python-dev \  
-  python-pip
+RUN apk add --update --no-cache \
+    build-base \
+    linux-headers \
+    eigen-dev \
+    cmake \
+    glog-dev \
+    suitesparse-dev \
+    openblas-dev \
+    libgomp \
+    graphviz \
+    libpng-dev \
+    libjpeg-turbo-dev \
+    tiff-dev \
+    libxi-dev \
+    libxrandr-dev \
+    libxxf86vm-dev \
+    --repository http://dl-cdn.alpinelinux.org/alpine/edge/testing/
 
-# build cmake (ubuntu 14.04 comes with cmake 2.8, we want a 3.X)
-RUN apt-get install -y curl
-RUN curl -O https://cmake.org/files/v3.8/cmake-3.8.0.tar.gz \
-     && tar -xvf cmake-3.8.0.tar.gz
-RUN cd cmake-3.8.0 && ./bootstrap && make && make install
+COPY --from=0 /usr/local/include/ceres /usr/local/include/ceres
+COPY --from=0 /usr/local/lib64 /usr/local/lib64
 
-# Clone the openvMVG repo 
 ADD . /opt/openMVG
-RUN cd /opt/openMVG && git submodule update --init --recursive
 
 # Build
-RUN mkdir /opt/openMVG_Build && cd /opt/openMVG_Build && cmake -DCMAKE_BUILD_TYPE=RELEASE \
-  -DCMAKE_INSTALL_PREFIX="/opt/openMVG_Build/install" -DOpenMVG_BUILD_TESTS=ON \
-  -DOpenMVG_BUILD_EXAMPLES=ON . ../openMVG/src/ && make -j 4
+RUN mkdir /opt/openMVG/build && cd /opt/openMVG/build && \
+    cmake \
+    -D CMAKE_BUILD_TYPE=RELEASE \
+    -D CMAKE_INSTALL_PREFIX="/usr/local" \
+    -D EIGEN_INCLUDE_DIR_HINTS="/usr/include/eigen3" \
+    -D OpenMVG_BUILD_TESTS=OFF \
+    -D OpenMVG_BUILD_DOC=OFF \
+    -D OpenMVG_BUILD_EXAMPLES=OFF \
+    -D OpenMVG_BUILD_GUI_SOFTWARES=OFF \
+    ../src/ && \
+    make -j12 && \
+    make install && \
+    rm -rf /opt/openMVG
 
-RUN cd /opt/openMVG_Build && make test
+RUN apk del \
+    build-base \
+    linux-headers \
+    eigen-dev \
+    cmake \
+    glog-dev \
+    suitesparse-dev \
+    openblas-dev \
+    libpng-dev \
+    libjpeg-turbo-dev \
+    tiff-dev \
+    libxi-dev \
+    libxrandr-dev \
+    libxxf86vm-dev
+
+RUN apk add --no-cache \
+    glog \
+    suitesparse \
+    openblas \
+    libpng \
+    libjpeg-turbo \
+    tiff \
+    libxi \
+    libxrandr \
+    libxxf86vm \
+    --repository http://dl-cdn.alpinelinux.org/alpine/edge/testing/
