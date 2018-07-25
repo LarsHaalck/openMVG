@@ -236,6 +236,13 @@ if (NOT TARGET cereal)
   install(TARGETS cereal EXPORT openMVG-targets)
 
   set(OpenMVG_USE_INTERNAL_CEREAL ON)
+  add_library(lcereal INTERFACE)
+  set_property(TARGET lcereal APPEND PROPERTY 
+      INTERFACE_INCLUDE_DIRECTORIES "$<INSTALL_INTERFACE:include/openMVG_dependencies/cereal/include>")
+
+  install(TARGETS lcereal DESTINATION lib EXPORT openMVG-targets)
+else()
+  get_target_property(CEREAL_INCLUDE_DIRS cereal INTERFACE_INCLUDE_DIRECTORIES)
 endif()
 
 # ==============================================================================

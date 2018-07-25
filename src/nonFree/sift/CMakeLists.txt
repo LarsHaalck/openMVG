@@ -26,8 +26,12 @@ set(FEATS
   vl/random.c)
 set_source_files_properties(${FEATS} PROPERTIES LANGUAGE C)
 add_library(vlsift ${FEATS})
+target_include_directories(vlsift 
+    PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<INSTALL_INTERFACE:include/openMVG_dependencies>)
 install(TARGETS vlsift DESTINATION lib EXPORT openMVG-targets)
-set_property(TARGET vlsift PROPERTY FOLDER OpenMVG/nonFree)
+
 install(
   DIRECTORY .
   DESTINATION include/openMVG_dependencies/nonFree/sift
