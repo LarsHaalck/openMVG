@@ -23,6 +23,7 @@
 #ifndef CMDLINE_H
 #define CMDLINE_H
 
+#include <exception>
 #include <vector>
 #include <algorithm>
 #include <iostream>
@@ -33,6 +34,20 @@
 #ifdef _WIN32
 #pragma warning(disable:4290) // exception specification ignored...
 #endif
+
+class CmdException : public std::exception
+{
+private:
+    std::string m_message;
+
+public:
+    CmdException(const std::string& message)
+        : m_message(message)
+    {
+    }
+
+    const char* what() const noexcept { return m_message.c_str(); }
+};
 
 /// Base class for option/switch
 class Option {
@@ -91,8 +106,8 @@ public:
         if(std::string("-")+c==argv[0] ||
            (!longName.empty() && std::string("--")+longName==argv[0])) {
             if(argc<=1)
-                throw std::string("Option ")
-                    +argv[0]+" requires argument";
+                throw CmdException(std::string("Option ") + argv[0]
+                    + " requires argument");
             param=argv[1]; arg=2;
         } else if(std::string(argv[0]).find(std::string("-")+c)==0) {
             param=argv[0]+2; arg=1;
@@ -103,8 +118,8 @@ public:
         }
         if(arg>0) {
             if(! read_param(param))
-                throw std::string("Unable to interpret ")
-                    +param+" as argument of "+argv[0];
+                throw CmdException(std::string("Unable to interpret ")
+                    +param+" as argument of "+argv[0]);
             used = true;
             std::rotate(argv, argv+arg, argv+argc);
             argc -= arg;
@@ -184,7 +199,8 @@ public:
                     std::istringstream str(argv[i]);
                     float v;
                     if(! (str>>v).eof())
-                        throw std::string("Unrecognized option ")+argv[i];
+                        throw CmdException(std::string("Unrecognized option ")
+                            + argv[i]);
                 }
                 ++i;
             }
