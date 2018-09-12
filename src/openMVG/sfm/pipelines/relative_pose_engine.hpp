@@ -25,7 +25,7 @@ class Relative_Pose_Engine
 public:
   using Relative_Pair_Poses = Hash_Map<Pair, geometry::Pose3>;
 
-  Relative_Pose_Engine () = default;
+  Relative_Pose_Engine();
 
   // Try to compute all the possible relative pose.
   bool Process(
@@ -45,8 +45,14 @@ public:
   // Relative poses accessor
   Relative_Pair_Poses Get_Relative_Poses() const;
 
+  void SetFixRotationTranslation(bool fixRotTrans)
+  {
+      this->fixRotTrans = fixRotTrans;
+  }
+
 private:
   Relative_Pair_Poses relative_poses_;
+  bool fixRotTrans;
 };
 
 } // namespace sfm

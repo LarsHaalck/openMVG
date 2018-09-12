@@ -40,6 +40,12 @@ namespace openMVG {
 namespace essential {
 namespace kernel {
 
+struct ThreePointFixedRotTransSolver {
+  enum { MINIMUM_SAMPLES = 15 };
+  enum { MAX_MODELS = 10 };
+  static void Solve(const Mat3X &x1, const Mat3X &x2, std::vector<Mat3> *E);
+};
+
 /**
  * Five-point algorithm to solve the Essential matrix from 5 points
  * correspondences. It solves the relative pose problem.

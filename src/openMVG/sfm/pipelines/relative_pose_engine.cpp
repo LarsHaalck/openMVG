@@ -28,6 +28,12 @@ using namespace cameras;
 using namespace geometry;
 using namespace matching;
 
+Relative_Pose_Engine::Relative_Pose_Engine()
+    : relative_poses_()
+    , fixRotTrans(false)
+{
+}
+
 // Try to compute all the possible relative pose.
 bool Relative_Pose_Engine::Process(
   const SfM_Data & sfm_data_,
@@ -146,7 +152,8 @@ bool Relative_Pose_Engine::Relative_Pose_Engine::Process(
                               x1, x2, relativePose_info,
                               {cam_I->w(), cam_I->h()},
                               {cam_J->w(), cam_J->h()},
-                              256))
+                              256,
+                              this->fixRotTrans))
       {
         continue;
       }

@@ -45,6 +45,10 @@ public:
   void SetTranslationAveragingMethod(ETranslationAveragingMethod eTranslation_averaging_method_);
 
   bool Process() override;
+  void SetFixRotationTranslation(bool fixRotTrans)
+  {
+      this->fixRotTrans = fixRotTrans;
+  }
 
 protected:
   /// Compute from relative rotations the global rotations of the camera poses
@@ -92,6 +96,7 @@ private:
   //-- Data provider
   Features_Provider  * features_provider_;
   Matches_Provider  * matches_provider_;
+  bool fixRotTrans;
 };
 
 } // namespace sfm

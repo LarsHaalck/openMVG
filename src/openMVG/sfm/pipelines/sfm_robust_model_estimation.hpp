@@ -57,7 +57,8 @@ bool robustRelativePose
   RelativePose_Info & relativePose_info,
   const std::pair<size_t, size_t> & size_ima1,
   const std::pair<size_t, size_t> & size_ima2,
-  const size_t max_iteration_count = 4096
+  const size_t max_iteration_count = 4096,
+  bool fixRotTrans = false
 );
 
 } // namespace sfm

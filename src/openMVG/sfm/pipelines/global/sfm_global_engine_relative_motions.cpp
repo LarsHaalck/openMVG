@@ -51,6 +51,7 @@ GlobalSfMReconstructionEngine_RelativeMotions::GlobalSfMReconstructionEngine_Rel
   const std::string & soutDirectory,
   const std::string & sloggingFile)
   : ReconstructionEngine(sfm_data, soutDirectory), sLogging_file_(sloggingFile)
+  , fixRotTrans(false)
 {
 
   if (!sLogging_file_.empty())
@@ -536,6 +537,7 @@ void GlobalSfMReconstructionEngine_RelativeMotions::Compute_Relative_Rotations
   const Relative_Pose_Engine::Relative_Pair_Poses relative_poses = [&]
   {
     Relative_Pose_Engine relative_pose_engine;
+    relative_pose_engine.SetFixRotationTranslation(this->fixRotTrans);
     if (!relative_pose_engine.Process(sfm_data_,
         matches_provider_,
         features_provider_))
