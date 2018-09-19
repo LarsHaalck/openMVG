@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <map>
 #include <vector>
+#include <iostream>
 
 #include "openMVG/features/feature.hpp"
 #include "openMVG/matching/indMatch.hpp"
@@ -82,6 +83,7 @@ void ImageCollectionGeometricFilter::Robust_model_estimation
 #endif
   for (int i = 0; i < (int)putative_matches.size(); ++i)
   {
+      std::cout << "Iteration: " << i << "/" << putative_matches.size() << std::endl;
     if (my_progress_bar->hasBeenCanceled())
       continue;
     auto iter = putative_matches.begin();

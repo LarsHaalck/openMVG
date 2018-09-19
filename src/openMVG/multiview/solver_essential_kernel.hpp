@@ -40,10 +40,11 @@ namespace openMVG {
 namespace essential {
 namespace kernel {
 
-struct ThreePointFixedRotTransSolver {
-  enum { MINIMUM_SAMPLES = 15 };
-  enum { MAX_MODELS = 10 };
-  static void Solve(const Mat3X &x1, const Mat3X &x2, std::vector<Mat3> *E);
+struct FixedRotationSolver {
+  enum { MINIMUM_SAMPLES = 10 };
+  enum { MAX_MODELS = 1 };
+  static void Solve(const Mat2X &x1, const Mat2X &x2, const Mat3& K,
+      const cameras::IntrinsicBase* intrinsics, std::vector<Mat3> *E);
 };
 
 /**

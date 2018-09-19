@@ -6,8 +6,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-#ifndef OPENMVG_SFM_SFM_ROBUST_MODEL_ESTIMATION_HPP
-#define OPENMVG_SFM_SFM_ROBUST_MODEL_ESTIMATION_HPP
+#ifndef OPENMVG_SFM_SFM_ROBUST_MODEL_ESTIMATION_INTRINSICS_HPP
+#define OPENMVG_SFM_SFM_ROBUST_MODEL_ESTIMATION_INTRINSICS_HPP
 
 #include <limits>
 #include <utility>
@@ -15,25 +15,12 @@
 
 #include "openMVG/geometry/pose3.hpp"
 #include "openMVG/numeric/eigen_alias_definition.hpp"
+#include "openMVG/sfm/pipelines/sfm_robust_model_estimation.hpp"
 
 namespace openMVG { namespace cameras { struct IntrinsicBase; } }
 
 namespace openMVG {
 namespace sfm {
-
-struct RelativePose_Info
-{
-  Mat3 essential_matrix;
-  geometry::Pose3 relativePose;
-  std::vector<uint32_t> vec_inliers;
-  double initial_residual_tolerance;
-  double found_residual_precision;
-
-  RelativePose_Info()
-    :initial_residual_tolerance(std::numeric_limits<double>::infinity()),
-    found_residual_precision(std::numeric_limits<double>::infinity())
-  {}
-};
 
 /**
  * @brief Estimate the Relative pose between two view from point matches and K matrices
@@ -48,7 +35,7 @@ struct RelativePose_Info
  * @param[in] size_ima2 width, height of image 2
  * @param[in] max iteration count
  */
-bool robustRelativePose
+bool robustRelativePoseFixed
 (
   const cameras::IntrinsicBase * intrinsics1,
   const cameras::IntrinsicBase * intrinsics2,
@@ -63,4 +50,4 @@ bool robustRelativePose
 } // namespace sfm
 } // namespace openMVG
 
-#endif // OPENMVG_SFM_SFM_ROBUST_MODEL_ESTIMATION_HPP
+#endif // OPENMVG_SFM_SFM_ROBUST_MODEL_ESTIMATION_INTRINSICS_HPP

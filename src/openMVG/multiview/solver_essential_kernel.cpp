@@ -28,12 +28,14 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 #include "openMVG/multiview/solver_essential_three_point.hpp"
-#include "openMVG/multiview/solver_essential_three_point_fixed_rot_trans.hpp"
+#include "openMVG/multiview/solver_essential_fixed_rotation.hpp"
 #include "openMVG/multiview/solver_essential_five_point.hpp"
 #include "openMVG/multiview/solver_essential_kernel.hpp"
 #include "openMVG/multiview/solver_fundamental_kernel.hpp"
 #include "openMVG/numeric/nullspace.hpp"
 #include "openMVG/numeric/poly.h"
+
+#include "openMVG/cameras/Camera_Intrinsics.hpp"
 
 #include <cassert>
 
@@ -41,12 +43,13 @@ namespace openMVG {
 namespace essential {
 namespace kernel {
 
-void ThreePointFixedRotTransSolver::Solve(const Mat3X &x1, const Mat3X &x2, std::vector<Mat3> *E) {
-  assert(3 <= x1.cols());
+void FixedRotationSolver::Solve(const Mat2X &x1, const Mat2X &x2, const Mat3& K,
+    const cameras::IntrinsicBase* intrinsics, std::vector<Mat3> *E) {
+  assert(10 <= x1.cols());
   assert(x1.rows() == x2.rows());
   assert(x1.cols() == x2.cols());
 
-  ThreePointFixedRotTransRelativePose(x1, x2, E);
+  FixedRotationRelativePose(x1, x2, K, intrinsics, E);
 }
 
 void FivePointSolver::Solve(const Mat3X &x1, const Mat3X &x2, std::vector<Mat3> *E) {

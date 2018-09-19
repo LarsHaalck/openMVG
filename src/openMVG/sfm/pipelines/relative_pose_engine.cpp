@@ -11,6 +11,7 @@
 #include "openMVG/multiview/essential.hpp"
 #include "openMVG/multiview/triangulation.hpp"
 #include "openMVG/sfm/pipelines/sfm_robust_model_estimation.hpp"
+#include "openMVG/sfm/pipelines/sfm_robust_model_estimation_fixed.hpp"
 #include "openMVG/sfm/pipelines/sfm_features_provider.hpp"
 #include "openMVG/sfm/pipelines/sfm_matches_provider.hpp"
 #include "openMVG/sfm/sfm_data.hpp"
@@ -20,6 +21,7 @@
 #include "openMVG/system/timer.hpp"
 
 #include "ceres/ceres.h"
+#include <fstream>
 
 namespace openMVG {
 namespace sfm {
@@ -66,6 +68,9 @@ bool Relative_Pose_Engine::Relative_Pose_Engine::Process(
   const Features_Provider * features_provider_
 )
 {
+    std::ofstream transFile, rotFile;
+    transFile.open("transFile.csv");
+    rotFile.open("rotFile.csv");
   //
   // List the pairwise matches related to each pose edge ids.
   //
@@ -140,20 +145,36 @@ bool Relative_Pose_Engine::Relative_Pose_Engine::Process(
       number_matches = 0;
       for (const auto & match : matches)
       {
-        x1.col(number_matches) = cam_I->get_ud_pixel(
-          features_provider_->feats_per_view.at(I)[match.i_].coords().cast<double>());
-        x2.col(number_matches++) = cam_J->get_ud_pixel(
-          features_provider_->feats_per_view.at(J)[match.j_].coords().cast<double>());
+        if (!this->fixRotTrans)
+        {
+          x1.col(number_matches) = cam_I->get_ud_pixel(
+            features_provider_->feats_per_view.at(I)[match.i_].coords().cast<double>());
+          x2.col(number_matches++) = cam_J->get_ud_pixel(
+            features_provider_->feats_per_view.at(J)[match.j_].coords().cast<double>());
+        }
+        else
+        {
+          x1.col(number_matches) =
+            features_provider_->feats_per_view.at(I)[match.i_].coords().cast<double>();
+          x2.col(number_matches++) =
+            features_provider_->feats_per_view.at(J)[match.j_].coords().cast<double>();
+        }
       }
 
       RelativePose_Info relativePose_info;
       relativePose_info.initial_residual_tolerance = Square(2.5);
-      if (!robustRelativePose(cam_I, cam_J,
+      if (!this->fixRotTrans && !robustRelativePose(cam_I, cam_J,
                               x1, x2, relativePose_info,
                               {cam_I->w(), cam_I->h()},
                               {cam_J->w(), cam_J->h()},
-                              256,
-                              this->fixRotTrans))
+                              256))
+      {
+        continue;
+      }
+      else if (this->fixRotTrans && !robustRelativePoseFixed(cam_I, cam_J,
+                              x1, x2, relativePose_info,
+                              {cam_I->w(), cam_I->h()},
+                              {cam_J->w(), cam_J->h()}, 256))
       {
         continue;
       }
@@ -219,10 +240,23 @@ bool Relative_Pose_Engine::Relative_Pose_Engine::Process(
       {
         // Add the relative pose to the relative 'rotation' pose graph
         relative_poses_[relative_pose_pair] = relativePose_info.relativePose;
+        if (I == J-1)
+        {
+            const auto trans = relativePose_info.relativePose.translation();
+            transFile << I << "," << J << "," << trans(0) << "," << trans(1) << "," << trans(2) << "\n";
+
+            const auto rot = relativePose_info.relativePose.rotation();
+            rotFile << I << "," << J << "," << rot(0, 0) << "," << rot(0, 1) << "," << rot(0, 2)
+                << "," << rot(1, 0) << "," << rot(1, 1) << "," << rot(1, 2)
+                << "," << rot(2, 0) << "," << rot(2, 1) << "," << rot(2, 2) << "\n";
+
+        }
       }
     }
   }
   std::cout << "Relative motion computation took: " << t.elapsedMs() << "(ms)" << std::endl;
+  rotFile.close();
+  transFile.close();
   return !relative_poses_.empty();
 }
 
