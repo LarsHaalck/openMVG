@@ -145,20 +145,20 @@ bool Relative_Pose_Engine::Relative_Pose_Engine::Process(
       number_matches = 0;
       for (const auto & match : matches)
       {
-        if (!this->fixRotTrans)
-        {
+        //if (!this->fixRotTrans)
+        //{
           x1.col(number_matches) = cam_I->get_ud_pixel(
             features_provider_->feats_per_view.at(I)[match.i_].coords().cast<double>());
           x2.col(number_matches++) = cam_J->get_ud_pixel(
             features_provider_->feats_per_view.at(J)[match.j_].coords().cast<double>());
-        }
-        else
-        {
-          x1.col(number_matches) =
-            features_provider_->feats_per_view.at(I)[match.i_].coords().cast<double>();
-          x2.col(number_matches++) =
-            features_provider_->feats_per_view.at(J)[match.j_].coords().cast<double>();
-        }
+        //}
+        //else
+        //{
+        //  x1.col(number_matches) =
+        //    features_provider_->feats_per_view.at(I)[match.i_].coords().cast<double>();
+        //  x2.col(number_matches++) =
+        //    features_provider_->feats_per_view.at(J)[match.j_].coords().cast<double>();
+        //}
       }
 
       RelativePose_Info relativePose_info;
@@ -177,7 +177,7 @@ bool Relative_Pose_Engine::Relative_Pose_Engine::Process(
                               {cam_J->w(), cam_J->h()}, 256))
       {
         continue;
-      }
+    }
       const bool bRefine_using_BA = true;
       if (bRefine_using_BA)
       {
@@ -230,6 +230,12 @@ bool Relative_Pose_Engine::Relative_Pose_Engine::Process(
           Mat3 Rrel;
           Vec3 trel;
           RelativeCameraMotion(R1, t1, R2, t2, &Rrel, &trel);
+          /*std::cout << "fix" << std::endl;
+          if (this->fixRotTrans)
+          {
+            Eigen::Vector3d ea = Rrel.eulerAngles(1, 2, 0);
+            Rrel = Eigen::AngleAxisd(ea[1], Eigen::Vector3d::UnitZ());
+        }*/
           // Update found relative pose
           relativePose_info.relativePose = Pose3(Rrel, -Rrel.transpose() * trel);
         }

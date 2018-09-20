@@ -13,7 +13,7 @@ class RadialEpipolarCostFunctor
 {
 public:
     explicit RadialEpipolarCostFunctor(const double* const x, const double* const y,
-        double px, double py);
+        double f, double px, double py);
 
     template <typename T>
     bool operator()(const T* const radialParams, const T* const essentialParams,
@@ -21,6 +21,7 @@ public:
 
     static int num_residuals() { return 1; }
 private:
+    double m_f;
     Vec4 m_vk0;
     Vec4 m_vk1;
     Vec4 m_vk2;
@@ -31,11 +32,11 @@ public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
-void FixedRotationRelativePose(const Mat2X &x1, const Mat2X &x2, const Mat3& K,
+void FixedRotationRelativePose(const Mat3X &x1, const Mat3X &x2, const Mat3& K,
     const cameras::IntrinsicBase* intrinsics, std::vector<Mat3> *E);
 
 
-void invertIntrinsics(std::shared_ptr<cameras::IntrinsicBase> intrinsics);
+void invertIntrinsics(std::vector<double>& params, int offset = 0);
 
 }
 

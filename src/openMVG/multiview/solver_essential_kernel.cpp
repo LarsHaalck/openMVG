@@ -45,7 +45,7 @@ namespace kernel {
 
 void FixedRotationSolver::Solve(const Mat2X &x1, const Mat2X &x2, const Mat3& K,
     const cameras::IntrinsicBase* intrinsics, std::vector<Mat3> *E) {
-  assert(10 <= x1.cols());
+  assert(8 <= x1.cols());
   assert(x1.rows() == x2.rows());
   assert(x1.cols() == x2.cols());
 
