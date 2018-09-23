@@ -52,18 +52,24 @@ bool robustRelativePoseFixed
     {
 
         // Define the AContrario adaptor to use the 5 point essential matrix solver.
-        using KernelType = robust::ACKernelAdaptorEssentialFixed<
+        using KernelType = robust::ACKernelAdaptorEssential<
             openMVG::essential::kernel::FixedRotationSolver,
             openMVG::fundamental::kernel::EpipolarDistanceError,
             Mat3>;
 
-        KernelType kernel(x1, size_ima1.first, size_ima1.second, x2, intrinsics1);
+        //KernelType kernel(x1, size_ima1.first, size_ima1.second, x2, intrinsics1);
+        //KernelType kernel(x1, size_ima1.first, size_ima1.second, x2);
+
+        KernelType kernel(x1, bearing1, size_ima1.first, size_ima1.second,
+                          x2, bearing2, size_ima2.first, size_ima2.second,
+                          dynamic_cast<const cameras::Pinhole_Intrinsic*>(intrinsics1)->K(),
+                          dynamic_cast<const cameras::Pinhole_Intrinsic*>(intrinsics2)->K());
 
         // Robustly estimation of the Model and its precision
         const auto ac_ransac_output = robust::ACRANSAC(
         kernel, relativePose_info.vec_inliers,
         max_iteration_count, &relativePose_info.essential_matrix,
-        relativePose_info.initial_residual_tolerance, false);
+        50*relativePose_info.initial_residual_tolerance, false);
 
         relativePose_info.found_residual_precision = ac_ransac_output.first;
 
@@ -80,9 +86,9 @@ bool robustRelativePoseFixed
   }
 
   // Compute the bearing vectors but with refined intrinsics (focal + distortion coeffs)
-  const Mat3X
-    bearing1 = (*intrinsics1)(x1),
-    bearing2 = (*intrinsics2)(x2);
+  //const Mat3X
+    //bearing1 = (*intrinsics1)(x1),
+    //bearing2 = (*intrinsics2)(x2);
   // estimation of the relative poses based on the cheirality test
   Pose3 relative_pose;
   if (!RelativePoseFromEssential(

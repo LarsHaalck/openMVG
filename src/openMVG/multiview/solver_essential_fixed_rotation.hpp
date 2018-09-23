@@ -9,7 +9,7 @@
 
 namespace openMVG {
 
-class RadialEpipolarCostFunctor
+/*class RadialEpipolarCostFunctor
 {
 public:
     explicit RadialEpipolarCostFunctor(const double* const x, const double* const y,
@@ -30,13 +30,12 @@ public:
     // fixes alignment issues with the new operator
     // see http://eigen.tuxfamily.org/dox-devel/group__TopicStructHavingEigenMembers.html
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-};
+};*/
 
-void FixedRotationRelativePose(const Mat3X &x1, const Mat3X &x2, const Mat3& K,
-    const cameras::IntrinsicBase* intrinsics, std::vector<Mat3> *E);
+void FixedRotationRelativePose(const Mat3X &x1, const Mat3X &x2, std::vector<Mat3> *E);
 
 
-void invertIntrinsics(std::vector<double>& params, int offset = 0);
+//void invertIntrinsics(std::vector<double>& params, int offset = 0);
 
 }
 

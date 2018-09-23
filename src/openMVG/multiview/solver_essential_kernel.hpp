@@ -43,8 +43,7 @@ namespace kernel {
 struct FixedRotationSolver {
   enum { MINIMUM_SAMPLES = 8 };
   enum { MAX_MODELS = 1 };
-  static void Solve(const Mat2X &x1, const Mat2X &x2, const Mat3& K,
-      const cameras::IntrinsicBase* intrinsics, std::vector<Mat3> *E);
+  static void Solve(const Mat3X &x1, const Mat3X &x2, std::vector<Mat3> *E);
 };
 
 /**

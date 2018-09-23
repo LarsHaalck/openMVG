@@ -9,7 +9,7 @@
 
 namespace openMVG {
 
-RadialEpipolarCostFunctor::RadialEpipolarCostFunctor(const double* const x,
+/*RadialEpipolarCostFunctor::RadialEpipolarCostFunctor(const double* const x,
     const double* const y, double f, double px, double py)
     : m_f(f)
     , m_vk0()
@@ -66,34 +66,33 @@ bool RadialEpipolarCostFunctor::operator()(
 
     residual[0] = res0 + res1 + res2;
     return true;
-}
+}*/
 
-void FixedRotationRelativePose(const Mat2X &x1, const Mat2X &x2, const Mat3& K,
-    const cameras::IntrinsicBase* intrinsics, std::vector<Mat3> *E)
+void FixedRotationRelativePose(const Mat3X &x1, const Mat3X &x2, std::vector<Mat3> *E)
 {
     // TODO: is normalization (1/sqrt(2) mean distance to origin) needed here?
     /***********************************************************************************
     * 1.) undistort x1, x2 with given intrinsics
     ************************************************************************************/
-    auto undistX1 = Mat2X(2, x1.cols());
+    /*auto undistX1 = Mat2X(2, x1.cols());
     auto undistX2 = Mat2X(2, x2.cols());
     for (int i = 0; i < x1.cols(); i++)
     {
         undistX1.col(i) = intrinsics->get_ud_pixel(x1.col(i));
         undistX2.col(i) = intrinsics->get_ud_pixel(x2.col(i));
-    }
+    }*/
 
     /************************************************************************************
     * 2.) compute bearings from x1, x2 (Kinv * x)
     ************************************************************************************/
-    auto bearingX1 = (*intrinsics)(undistX1);
-    auto bearingX2 = (*intrinsics)(undistX2);
+    /*auto bearingX1 = (*intrinsics)(undistX1);
+    auto bearingX2 = (*intrinsics)(undistX2);*/
 
     /***********************************************************************************
     * 3.) esimate initial E using SVD on epicolar constraint matrix
     ************************************************************************************/
     Mat epiConstraint = Mat::Constant(x1.cols(), 9, 0.0);
-    fundamental::kernel::EncodeEpipolarEquation(bearingX1, bearingX2, &epiConstraint);
+    fundamental::kernel::EncodeEpipolarEquation(x1, x2, &epiConstraint);
     // cut of last column because we solve for essential matrix with last element = 0
     epiConstraint.conservativeResize(x1.cols(), 8);
 
@@ -101,12 +100,31 @@ void FixedRotationRelativePose(const Mat2X &x1, const Mat2X &x2, const Mat3& K,
     // intial estimate is last column of V (not transposed)
     Vec initialE = USV.matrixV().rightCols<1>();
 
+    Mat3 essentialEstimate = Mat3::Zero();
+    essentialEstimate(0, 0) = initialE(0);
+    essentialEstimate(0, 1) = initialE(1);
+    essentialEstimate(0, 2) = initialE(2);
+    essentialEstimate(1, 0) = initialE(3);
+    essentialEstimate(1, 1) = initialE(4);
+    essentialEstimate(1, 2) = initialE(5);
+    essentialEstimate(2, 0) = initialE(6);
+    essentialEstimate(2, 1) = initialE(7);
+
+    // force rk(E) = 2 by setting the last singular value to zero 
+    Eigen::JacobiSVD<Mat3> USV2(essentialEstimate, Eigen::ComputeFullU|Eigen::ComputeFullV);
+    Vec3 singularValues = USV2.singularValues();
+    singularValues(2) = 0.0;
+    essentialEstimate = USV2.matrixU() * singularValues.asDiagonal() * USV2.matrixV().transpose();
+
+    E->resize(1);
+    E->push_back(essentialEstimate);
+    return;
     /***********************************************************************************
     * 4.) ceres problem with given intrinsics as initial esimate and SVD solution for E
     ***********************************************************************************/
     // invert radial distortion
     // extract ku, kv
-    ceres::Problem problem;
+    /*ceres::Problem problem;
     auto intrinsicParams = intrinsics->getParams();
 
     // copy dist coeffs (offset should be +3 to skip principal and focal)
@@ -203,13 +221,11 @@ void FixedRotationRelativePose(const Mat2X &x1, const Mat2X &x2, const Mat3& K,
     // 5.) use truncated SVD to force rank = 2 for both essential estimates
 
     // 6.) return intrinsics
-
-
-    char bla;
-    std::cin >> bla;
+    char tmp;
+    std::cin >> tmp;*/
 }
 
-void invertIntrinsics(std::vector<double>& params, int of)
+/*void invertIntrinsics(std::vector<double>& params, int of)
 {
     double inv0 = -params[of];
     double inv1 = 3 * (params[of] * params[of]) - params[1 + of];
@@ -220,5 +236,5 @@ void invertIntrinsics(std::vector<double>& params, int of)
     params[1 + of] = inv1;
     params[2 + of] = inv2;
     return;
-}
+}*/
 }

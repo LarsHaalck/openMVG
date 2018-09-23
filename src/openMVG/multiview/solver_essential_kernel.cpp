@@ -43,13 +43,12 @@ namespace openMVG {
 namespace essential {
 namespace kernel {
 
-void FixedRotationSolver::Solve(const Mat2X &x1, const Mat2X &x2, const Mat3& K,
-    const cameras::IntrinsicBase* intrinsics, std::vector<Mat3> *E) {
+void FixedRotationSolver::Solve(const Mat3X &x1, const Mat3X &x2, std::vector<Mat3> *E) {
   assert(8 <= x1.cols());
   assert(x1.rows() == x2.rows());
   assert(x1.cols() == x2.cols());
 
-  FixedRotationRelativePose(x1, x2, K, intrinsics, E);
+  FixedRotationRelativePose(x1, x2, E);
 }
 
 void FivePointSolver::Solve(const Mat3X &x1, const Mat3X &x2, std::vector<Mat3> *E) {
