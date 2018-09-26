@@ -36,13 +36,14 @@ public:
   ACKernelAdaptorEssentialFixed
   (
     const Mat2X& x1, int w1, int h1,
-    const Mat2X& x2
+    const Mat2X& x2,
+    const cameras::IntrinsicBase* intrinsics1
   ):x1_(x1),
     x2_(x2),
     N1_(Mat3::Identity()),
-    logalpha0_(0.0)
-    //K1_(dynamic_cast<const cameras::Pinhole_Intrinsic*>(intrinsics1)->K()),
-    //intrinsics1_(intrinsics1)
+    logalpha0_(0.0),
+    K1_(dynamic_cast<const cameras::Pinhole_Intrinsic*>(intrinsics1)->K()),
+    intrinsics1_(intrinsics1)
   {
     assert(2 == x1_.rows());
     assert(x1_.rows() == x2_.rows());
@@ -62,8 +63,8 @@ public:
   {
     const auto x1 = ExtractColumns(x1_, samples);
     const auto x2 = ExtractColumns(x2_, samples);
-    //Solver::Solve(x1, x2, this->K1_, this->intrinsics1_, models);
-    Solver::Solve(x1, x2, this->K1_, models);
+    Solver::Solve(x1, x2, models, this->intrinsics1_);
+    //Solver::Solve(x1, x2, this->K1_, models);
   }
 
   double Error

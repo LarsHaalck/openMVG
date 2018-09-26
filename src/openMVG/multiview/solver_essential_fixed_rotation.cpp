@@ -1,6 +1,7 @@
 #include "openMVG/multiview/solver_essential_fixed_rotation.hpp"
 #include "openMVG/multiview/solver_fundamental_kernel.hpp"
 #include "openMVG/numeric/eigen_alias_definition.hpp"
+#include "openMVG/cameras/Camera_Pinhole.hpp"
 
 #include "ceres/ceres.h"
 
@@ -10,97 +11,81 @@
 namespace openMVG {
 
 /*RadialEpipolarCostFunctor::RadialEpipolarCostFunctor(const double* const x,
-    const double* const y, double f, double px, double py)
-    : m_f(f)
-    , m_vk0()
-    , m_vk1()
-    , m_vk2()
-    , m_vk3()
+    const double* const y, int n, const double* K, const double* Kinv)
+    : m_x(Eigen::Map<const Mat2X>(x, 2, n))
+    , m_y(Eigen::Map<const Mat2X>(y, 2, n))
+    , m_K(Eigen::Map<const Mat3>(K))
+    , m_Kinv(Eigen::Map<const Mat3>(Kinv))
+
 {
-    double xc0 = x[0] - px; double xc1 = x[1] - py;
-    double xr2 = (xc0 * xc0) + (xc1 * xc1);
-    double xr4 = xr2 * xr2;
-    double xr6 = xr4 * xr2;
-    double yc0 = y[0] - px; double yc1 = y[1] - py;
-    double yr2 = (yc0 * yc0) + (yc1 * yc1);
-    double yr4 = yr2 * yc0;
-    double yr6 = yr4 * yr2;
-
-
-    m_vk0 << xc0, xc1, yc0, yc1;
-    m_vk1 = m_vk0;
-    m_vk1.segment<2>(0) *= xr2;
-    m_vk1.segment<2>(2) *= yr2;
-
-    m_vk2 = m_vk0;
-    m_vk2.segment<2>(0) *= xr4;
-    m_vk2.segment<2>(2) *= yr4;
-
-    m_vk3 = m_vk0;
-    m_vk3.segment<2>(0) *= xr6;
-    m_vk3.segment<2>(2) *= yr6;
+    m_p << m_K(0, 2), m_K(1, 2);
 }
 
 template <typename T>
-bool RadialEpipolarCostFunctor::operator()(
-    const T* const k,
-    const T* const e,
-    T* residual) const
+Eigen::Matrix<T, 2, 1> RadialEpipolarCostFunctor::undist(Vec2 p, const T* const k) const
 {
-    double k0 = 1 / m_f;
-    double k02 = k0 * k0;
-    double k03 = k02 * k0;
-    double k05 = k03 * k02;
-    double k07 = k05 * k02;
-
-    Eigen::Matrix<T, 4, 1> XYHat =
-        k0 * m_vk0
-        + (k03 * k[0]) * m_vk1
-        + (k05 * k[1]) * m_vk2
-        + (k07 * k[2]) * m_vk3;;
-
-    // e is in row-major
-    T res0 = XYHat[0] * (e[0] * XYHat[2] + e[1] * XYHat[3] + e[2]);
-    T res1 = XYHat[1] * (e[3] * XYHat[2] + e[4] * XYHat[3] + e[5]);
-    T res2 = (e[6] * XYHat[2] + e[7] * XYHat[3]);
-
-    residual[0] = res0 + res1 + res2;
-    return true;
+    double r2 = p(0) * p(0) + p(1) * p(1);
+    double r4 = r2 * r2;
+    double r6 = r4 * r2;
+    T r_coeff = ( 1. + k[0] * r2 + k[1] * r4 + k[2] * r6 );
+    return ( p * r_coeff );
 }*/
 
-void FixedRotationRelativePose(const Mat3X &x1, const Mat3X &x2, std::vector<Mat3> *E)
+/*template <typename T>
+bool RadialEpipolarCostFunctor::operator()(
+    const T* const k,
+    T* residual) const
 {
-    // TODO: is normalization (1/sqrt(2) mean distance to origin) needed here?
+    typedef Eigen::Matrix<T, 2, Eigen::Dynamic> Mat2XT;
+    typedef Eigen::Matrix<T, 3, Eigen::Dynamic> Mat3XT;
+    typedef Eigen::Matrix<T, 2, 1> Vec2T;
+    typedef Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> MatT;*/
+
     /***********************************************************************************
     * 1.) undistort x1, x2 with given intrinsics
     ************************************************************************************/
-    /*auto undistX1 = Mat2X(2, x1.cols());
-    auto undistX2 = Mat2X(2, x2.cols());
-    for (int i = 0; i < x1.cols(); i++)
+    /*double f, finv, px, py;
+    f = m_K(0, 0);
+    finv = m_Kinv(0, 0);
+    px = m_K(0, 2);
+    py = m_K(1, 2);
+
+    Mat2XT undistX(2, m_x.cols());
+    Mat2XT undistY(2, m_y.cols());
+    for (int i = 0; i < m_x.cols(); i++)
     {
-        undistX1.col(i) = intrinsics->get_ud_pixel(x1.col(i));
-        undistX2.col(i) = intrinsics->get_ud_pixel(x2.col(i));
+        Vec2 currUndistX = finv * (m_x.col(i) - m_p);
+        Vec2 currUndistY = finv * (m_y.col(i) - m_p);
+        Vec2T currUndistXT = undist(currUndistX, k);
+        Vec2T currUndistYT = undist(currUndistY, k);
+        currUndistXT = f * currUndistXT + m_p;
+        currUndistYT = f * currUndistYT + m_p;
+
+        undistX.col(i) = currUndistXT;
+        undistY.col(i) = currUndistYT;
     }*/
 
     /************************************************************************************
     * 2.) compute bearings from x1, x2 (Kinv * x)
     ************************************************************************************/
-    /*auto bearingX1 = (*intrinsics)(undistX1);
-    auto bearingX2 = (*intrinsics)(undistX2);*/
+    /*Mat3XT bearingX = m_Kinv * undistX.colwise().homogeneous();
+    Mat3XT bearingY = m_Kinv * undistY.colwise().homogeneous();*/
 
-    /***********************************************************************************
-    * 3.) esimate initial E using SVD on epicolar constraint matrix
+    /************************************************************************************
+    * 3.) compute E by SVD
     ************************************************************************************/
-    Mat epiConstraint = Mat::Constant(x1.cols(), 9, 0.0);
-    fundamental::kernel::EncodeEpipolarEquation(x1, x2, &epiConstraint);
+    /*MatT epiConstraint = MatT::Constant(m_x.cols(), 9, static_cast<T>(0.0));
+    fundamental::kernel::EncodeEpipolarEquation(bearingX, bearingY, &epiConstraint);
     // cut of last column because we solve for essential matrix with last element = 0
-    epiConstraint.conservativeResize(x1.cols(), 8);
+    MatT epiConstraintCut = epiConstraint.block(0, 0, m_x.cols(), 8);
+    //epiConstraint.conservativeResize(m_x.cols(), 8);
 
-    Eigen::JacobiSVD<Mat> USV(epiConstraint, Eigen::ComputeFullU|Eigen::ComputeFullV);
+    Eigen::JacobiSVD<MatT> USV(epiConstraintCut, Eigen::ComputeFullU|Eigen::ComputeFullV);
     // intial estimate is last column of V (not transposed)
-    Vec initialE = USV.matrixV().rightCols<1>();
+    Eigen::Matrix<T, Eigen::Dynamic, 1> initialE = USV.matrixV().rightCols(1);
+    //Eigen::Matrix<T, Eigen::Dynamic, 1> initialE = Eigen::Matrix<T, Eigen::Dynamic, 1>::Zero(8);
 
-    Mat3 essentialEstimate = Mat3::Zero();
+    Eigen::Matrix<T, 3, 3> essentialEstimate = Eigen::Matrix<T, 3, 3>::Zero();
     essentialEstimate(0, 0) = initialE(0);
     essentialEstimate(0, 1) = initialE(1);
     essentialEstimate(0, 2) = initialE(2);
@@ -110,18 +95,24 @@ void FixedRotationRelativePose(const Mat3X &x1, const Mat3X &x2, std::vector<Mat
     essentialEstimate(2, 0) = initialE(6);
     essentialEstimate(2, 1) = initialE(7);
 
-    // force rk(E) = 2 by setting the last singular value to zero 
-    Eigen::JacobiSVD<Mat3> USV2(essentialEstimate, Eigen::ComputeFullU|Eigen::ComputeFullV);
-    Vec3 singularValues = USV2.singularValues();
-    singularValues(2) = 0.0;
+    // force rk(E) = 2 by setting the last singular value to zero
+    Eigen::JacobiSVD<Eigen::Matrix<T, 3, 3>> USV2(essentialEstimate,
+        Eigen::ComputeFullU|Eigen::ComputeFullV);
+
+    Eigen::Matrix<T, 3, 1> singularValues = USV2.singularValues();
+    singularValues(2) = static_cast<T>(0.0);
     essentialEstimate = USV2.matrixU() * singularValues.asDiagonal() * USV2.matrixV().transpose();
 
-    E->resize(1);
-    E->push_back(essentialEstimate);
-    return;
-    /***********************************************************************************
-    * 4.) ceres problem with given intrinsics as initial esimate and SVD solution for E
-    ***********************************************************************************/
+    // evaluate error
+    Eigen::Matrix<T, Eigen::Dynamic, 1> evals = (bearingX.transpose() * essentialEstimate * bearingY).diagonal();
+    for(int i = 0; i < 10; i++)
+        residual[i] = evals[i];*/
+
+    /*return true;
+}*/
+
+void FixedRotationRelativePose(const Mat3X &x1, const Mat3X &x2, std::vector<Mat3> *E)
+{
     // invert radial distortion
     // extract ku, kv
     /*ceres::Problem problem;
@@ -134,48 +125,20 @@ void FixedRotationRelativePose(const Mat3X &x1, const Mat3X &x2, std::vector<Mat
     double* distPtr = &distCoeffs[0];
     problem.AddParameterBlock(distPtr, 3);
 
-    // constrain k1, k2, k3 to be in [-1, 1]
-    problem.SetParameterLowerBound(distPtr, 0, -1);
-    problem.SetParameterUpperBound(distPtr, 0, 1);
 
-    problem.SetParameterLowerBound(distPtr, 1, 2);
-    problem.SetParameterUpperBound(distPtr, 1, 4);
+    // add one cost function for all observations
 
-    problem.SetParameterLowerBound(distPtr, 2, -5);
-    problem.SetParameterUpperBound(distPtr, 2, 21);
-
-    std::vector<double> essentialCoeffs(initialE.data(),
-        initialE.data() + initialE.rows() * initialE.cols());
-    double* essentialPtr = &essentialCoeffs[0];
-    problem.AddParameterBlock(essentialPtr, 8);
-
-    // avoid trivial solution
-    //problem.SetParameterLowerBound(essentialPtr, 2, 1e-3);
-    //problem.SetParameterLowerBound(essentialPtr, 5, 1e-3);
-
-    // add cost function for every observation
-    for (int i = 0; i < x1.cols(); i++)
-    {
-        Vec2 obsX = x1.col(i);
-        Vec2 obsY = x2.col(i);
-
-        ceres::CostFunction* costFunction =
-            new ceres::AutoDiffCostFunction<RadialEpipolarCostFunctor, 1, 3, 8>(
-                new RadialEpipolarCostFunctor(obsX.data(), obsY.data(),
-                    intrinsicParams[0], intrinsicParams[1], intrinsicParams[2]));
-        problem.AddResidualBlock(costFunction, nullptr, distPtr,
-            essentialPtr);
-    }
+    //intrinsicParams[0,1,2] equals focal, px, py
+    ceres::CostFunction* costFunction =
+        new ceres::AutoDiffCostFunction<RadialEpipolarCostFunctor, 10, 3>(
+            new RadialEpipolarCostFunctor(x1.data(), x2.data(), x1.cols(),
+                dynamic_cast<const cameras::Pinhole_Intrinsic*>(intrinsics)->K().data(),
+                dynamic_cast<const cameras::Pinhole_Intrinsic*>(intrinsics)->Kinv().data()));
+    problem.AddResidualBlock(costFunction, nullptr, distPtr);
 
     std::cout << "Initial Settings: " << std::endl;
     std::cout << "Dist coeffs: " << std::endl;
     for(const auto& elem : distCoeffs)
-    {
-        std::cout << elem << ", ";
-    }
-    std::cout << std::endl;
-    std::cout << "Essential coeffs: " << std::endl;
-    for(const auto& elem : essentialCoeffs)
     {
         std::cout << elem << ", ";
     }
@@ -203,29 +166,44 @@ void FixedRotationRelativePose(const Mat3X &x1, const Mat3X &x2, std::vector<Mat
     {
         std::cout << elem << ", ";
     }
-    std::cout << std::endl;
+    std::cout << std::endl;*/
 
-    std::cout << "Essential coeffs: " << std::endl;
-    for(const auto& elem : essentialCoeffs)
-    {
-        std::cout << elem << ", ";
-    }
-    std::cout << std::endl;
+    Mat epiConstraint = Mat::Constant(x1.cols(), 9, 0.0);
+    fundamental::kernel::EncodeEpipolarEquation(x1, x2, &epiConstraint);
+    // cut of last column because we solve for essential matrix with last element = 0
+    epiConstraint.conservativeResize(x1.cols(), 8);
 
+    Eigen::JacobiSVD<Mat> USV(epiConstraint, Eigen::ComputeFullU|Eigen::ComputeFullV);
+    // intial estimate is last column of V (not transposed)
+    Vec initialE = USV.matrixV().rightCols<1>();
 
+    Mat3 essentialEstimate = Mat3::Zero();
+    essentialEstimate(0, 0) = initialE(0);
+    essentialEstimate(0, 1) = initialE(1);
+    essentialEstimate(0, 2) = initialE(2);
+    essentialEstimate(1, 0) = initialE(3);
+    essentialEstimate(1, 1) = initialE(4);
+    essentialEstimate(1, 2) = initialE(5);
+    essentialEstimate(2, 0) = initialE(6);
+    essentialEstimate(2, 1) = initialE(7);
 
-    // to avoid trivial solution solve for tx > 1 and then for ty > 1 and let RANSAC
-    // decide which results fits the matches better
+    // force rk(E) = 2 by setting the last singular value to zero
+    Eigen::JacobiSVD<Mat3> USV2(essentialEstimate, Eigen::ComputeFullU|Eigen::ComputeFullV);
+    Vec3 singularValues = USV2.singularValues();
+    singularValues(2) = 0.0;
+    essentialEstimate = USV2.matrixU() * singularValues.asDiagonal() * USV2.matrixV().transpose();
 
-
-    // 5.) use truncated SVD to force rank = 2 for both essential estimates
-
-    // 6.) return intrinsics
-    char tmp;
-    std::cin >> tmp;*/
+    E->resize(1);
+    E->push_back(essentialEstimate);
+    return;
 }
 
-/*void invertIntrinsics(std::vector<double>& params, int of)
+
+
+/*
+*/
+
+void invertIntrinsics(std::vector<double>& params, int of)
 {
     double inv0 = -params[of];
     double inv1 = 3 * (params[of] * params[of]) - params[1 + of];
@@ -236,5 +214,5 @@ void FixedRotationRelativePose(const Mat3X &x1, const Mat3X &x2, std::vector<Mat
     params[1 + of] = inv1;
     params[2 + of] = inv2;
     return;
-}*/
+}
 }

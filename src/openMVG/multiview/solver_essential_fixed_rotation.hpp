@@ -12,26 +12,28 @@ namespace openMVG {
 /*class RadialEpipolarCostFunctor
 {
 public:
-    explicit RadialEpipolarCostFunctor(const double* const x, const double* const y,
-        double f, double px, double py);
-
-    template <typename T>
-    bool operator()(const T* const radialParams, const T* const essentialParams,
-        T* residual) const;
-
-    static int num_residuals() { return 1; }
-private:
-    double m_f;
-    Vec4 m_vk0;
-    Vec4 m_vk1;
-    Vec4 m_vk2;
-    Vec4 m_vk3;
-public:
     // fixes alignment issues with the new operator
     // see http://eigen.tuxfamily.org/dox-devel/group__TopicStructHavingEigenMembers.html
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-};*/
 
+    explicit RadialEpipolarCostFunctor(const double* const x, const double* const y,
+        int n, const double* K, const double* Kinv);
+
+    template <typename T>
+    bool operator()(const T* const radialParams, T* residual) const;
+
+    static int num_residuals() { return 1; }
+private:
+    template <typename T>
+    Eigen::Matrix<T, 2, 1> undist(const Vec2 p, const T* const k) const;
+
+    Mat2X m_x;
+    Mat2X m_y;
+    Mat3 m_K;
+    Mat3 m_Kinv;
+    Vec2 m_p;
+};
+*/
 void FixedRotationRelativePose(const Mat3X &x1, const Mat3X &x2, std::vector<Mat3> *E);
 
 
