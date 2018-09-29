@@ -27,10 +27,18 @@ enum class Extrinsic_Parameter_Type : int
 };
 
 /// Enum to control if the Structure must be refined or not
-enum class Structure_Parameter_Type : bool
+enum class Structure_Parameter_Type : int
 {
-  NONE = false, // Structure will be held as constant
-  ADJUST_ALL = true
+  NONE = 0, // Structure will be held as constant
+  ADJUST_ALL = 1, // Structure will be variable
+  SKIP = 2, // Structure will be skipped completely (only used for dedoming)
+};
+
+/// Enum to control the ground cost function
+enum class Ground_Cost : int
+{
+  REPROJECTION = 0,
+  SQUARE = 1,
 };
 
 /// Structure to tell to BA if GCP must be use and with which weight
@@ -54,6 +62,7 @@ struct Optimize_Options
   Structure_Parameter_Type structure_opt;
   Control_Point_Parameter control_point_opt;
   bool use_motion_priors_opt;
+  Ground_Cost ground_cost;
 
   Optimize_Options
   (
@@ -61,13 +70,15 @@ struct Optimize_Options
     const Extrinsic_Parameter_Type extrinsics = Extrinsic_Parameter_Type::ADJUST_ALL,
     const Structure_Parameter_Type structure = Structure_Parameter_Type::ADJUST_ALL,
     const Control_Point_Parameter & control_point = Control_Point_Parameter(0.0, false), // Default setting does not use GCP in the BA
-    const bool use_motion_priors = false
+    const bool use_motion_priors = false,
+    const Ground_Cost ground = Ground_Cost::REPROJECTION // last paraemter in order to not interfere with the rest of the framework
   )
   :intrinsics_opt(intrinsics),
    extrinsics_opt(extrinsics),
    structure_opt(structure),
    control_point_opt(control_point),
-   use_motion_priors_opt(use_motion_priors)
+   use_motion_priors_opt(use_motion_priors),
+   ground_cost(ground)
   {
   }
 };

@@ -11,6 +11,8 @@
 
 #include "openMVG/numeric/eigen_alias_definition.hpp"
 #include "openMVG/sfm/sfm_data_BA.hpp"
+#include "openMVG/types.hpp"
+
 
 namespace ceres { class CostFunction; }
 namespace openMVG { namespace cameras { struct IntrinsicBase; } }
@@ -46,6 +48,7 @@ class Bundle_Adjustment_Ceres : public Bundle_Adjustment
   };
   private:
     BA_Ceres_options ceres_options_;
+    Hash_Map<IndexT, Vec3> ground_data_;
 
   public:
   explicit Bundle_Adjustment_Ceres
@@ -55,6 +58,7 @@ class Bundle_Adjustment_Ceres : public Bundle_Adjustment
   );
 
   BA_Ceres_options & ceres_options();
+  void Set_ground_data(Hash_Map<IndexT, Vec3> ground_data);
 
   bool Adjust
   (

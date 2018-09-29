@@ -23,10 +23,9 @@
 #include "openMVG/sfm/sfm_data_BA_ceres_camera_functor.hpp"
 #include "openMVG/sfm/sfm_data_transform.hpp"
 #include "openMVG/sfm/sfm_data.hpp"
-#include "openMVG/types.hpp"
 
-#include <ceres/rotation.h>
 #include <ceres/types.h>
+#include <ceres/rotation.h>
 
 #include <iostream>
 #include <limits>
@@ -160,6 +159,11 @@ Bundle_Adjustment_Ceres::BA_Ceres_options &
 Bundle_Adjustment_Ceres::ceres_options()
 {
   return ceres_options_;
+}
+
+void Bundle_Adjustment_Ceres::Set_ground_data(Hash_Map<IndexT, Vec3> ground_data)
+{
+    ground_data_ = std::move(ground_data);
 }
 
 bool Bundle_Adjustment_Ceres::Adjust
@@ -330,15 +334,29 @@ bool Bundle_Adjustment_Ceres::Adjust
       new ceres::HuberLoss(Square(4.0))
       : nullptr;
 
-  // For all visibility add reprojections errors:
+   // For all visibility add reprojections errors:
   for (auto & structure_landmark_it : sfm_data.structure)
   {
-    const Observations & obs = structure_landmark_it.second.obs;
+    // if structure is skipped and current landmark is not a ground point skip
+    bool has_ground_point = (ground_data_.count(structure_landmark_it.first) > 0);
+    if (options.structure_opt == Structure_Parameter_Type::SKIP
+      && !has_ground_point)
+      continue;
 
+    double* Xdata;
+    if (has_ground_point)
+      Xdata = ground_data_.at(structure_landmark_it.first).data();
+    else
+      Xdata = structure_landmark_it.second.X.data();
+
+    const Observations & obs = structure_landmark_it.second.obs;
     for (const auto & obs_it : obs)
     {
       // Build the residual block corresponding to the track observation:
       const View * view = sfm_data.views.at(obs_it.first).get();
+
+      // TODO when ground data is aviable and square is used
+      // use other cost function
 
       // Each Residual block takes a point and a camera as input and outputs a 2
       // dimensional residual. Internally, the cost function stores the observed
@@ -355,14 +373,14 @@ bool Bundle_Adjustment_Ceres::Adjust
             p_LossFunction,
             &map_intrinsics.at(view->id_intrinsic)[0],
             &map_poses.at(view->id_pose)[0],
-            structure_landmark_it.second.X.data());
+            Xdata);
         }
         else
         {
           problem.AddResidualBlock(cost_function,
             p_LossFunction,
             &map_poses.at(view->id_pose)[0],
-            structure_landmark_it.second.X.data());
+            Xdata);
         }
       }
       else
@@ -371,8 +389,8 @@ bool Bundle_Adjustment_Ceres::Adjust
         return false;
       }
     }
-    if (options.structure_opt == Structure_Parameter_Type::NONE)
-      problem.SetParameterBlockConstant(structure_landmark_it.second.X.data());
+    if (options.structure_opt == Structure_Parameter_Type::NONE || has_ground_point)
+      problem.SetParameterBlockConstant(Xdata);
   }
 
   if (options.control_point_opt.bUse_control_points)
