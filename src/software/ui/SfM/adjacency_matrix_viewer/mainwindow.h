@@ -22,6 +22,7 @@ public:
 
 private slots:
   void open();
+  void save();
 
 private:
 
@@ -30,7 +31,8 @@ private:
   (
     const std::string & sSfM_Data_Filename,
     const std::string & sMatchesDir,
-    const std::string & sMatchFile
+    const std::string & sMatchFile,
+    const std::string & sFeatureDir
   );
 
   QGraphicsScene * scene;

@@ -20,8 +20,11 @@ public:
   MatchingPairGraphicsView
   (
     MainFrame *v,
-    const Document & doc
+    Document & doc
   );
+
+
+  void setEraseMode(bool isErase) { eraseMode = isErase; }
 
 protected:
 #ifndef QT_NO_WHEELEVENT
@@ -29,8 +32,11 @@ protected:
 #endif
 
   void mousePressEvent(QMouseEvent * event) Q_DECL_OVERRIDE;
+  void mouseReleaseEvent(QMouseEvent * event) Q_DECL_OVERRIDE;
 
 private:
   MainFrame *main_frame;
-  const Document &doc;
+  Document &doc;
+  bool eraseMode;
+  QPoint posPress;
 };

@@ -21,9 +21,9 @@
 MatchingPairGraphicsView::MatchingPairGraphicsView
 (
   MainFrame *v,
-  const Document & doc
+  Document & doc
 )
-: QGraphicsView(), main_frame(v), doc(doc)
+: QGraphicsView(), main_frame(v), doc(doc), eraseMode(false), posPress()
 {
 }
 
@@ -42,8 +42,27 @@ void MatchingPairGraphicsView::wheelEvent(QWheelEvent *e)
 }
 #endif
 
-void MatchingPairGraphicsView::mousePressEvent(QMouseEvent * event)
+void MatchingPairGraphicsView::mousePressEvent(QMouseEvent *event)
 {
+  posPress = QPoint();
+  if (eraseMode)
+  {
+      posPress = event->pos();
+      QGraphicsItem *item = itemAt(posPress);
+      if (item)
+      {
+        PairGraphicsItem* pair_item = dynamic_cast<PairGraphicsItem*>(item);
+        if (pair_item)
+        {
+          unsigned int I = pair_item->get_x();
+          unsigned int J = pair_item->get_y();
+          doc.matches_provider->pairWise_matches_.erase(std::make_pair(I,J));
+          delete pair_item;
+        }
+      }
+      QGraphicsView::mousePressEvent(event);
+      return;
+  }
   const QGraphicsItem *item = itemAt(event->pos());
   if (item)
   {
@@ -100,4 +119,35 @@ void MatchingPairGraphicsView::mousePressEvent(QMouseEvent * event)
   }
 
   QGraphicsView::mousePressEvent(event); // this forwards the event to the item
+}
+
+void MatchingPairGraphicsView::mouseReleaseEvent(QMouseEvent *event)
+{
+  if (eraseMode && posPress != QPoint())
+  {
+      QPoint posRelease = event->pos();
+      auto topLeft = QPoint(qMin(posPress.x(), posRelease.x()),
+        qMin(posPress.y(), posRelease.y()));
+      auto bottomRight = QPoint(qMax(posPress.x(), posRelease.x()),
+        qMax(posPress.y(), posRelease.y()));
+      QList<QGraphicsItem*> itemList = items(QRect(topLeft, bottomRight));
+      for (int i = 0; i < itemList.size(); i++)
+      {
+        if (!itemList[i])
+          continue;
+
+        PairGraphicsItem* pair_item = dynamic_cast<PairGraphicsItem*>(itemList[i]);
+        if (!pair_item)
+          return;
+
+        unsigned int I = pair_item->get_x();
+        unsigned int J = pair_item->get_y();
+        doc.matches_provider->pairWise_matches_.erase(std::make_pair(I,J));
+        delete pair_item;
+      }
+
+      posPress = QPoint();
+      QGraphicsView::mouseReleaseEvent(event); // forward
+      return;
+  }
 }

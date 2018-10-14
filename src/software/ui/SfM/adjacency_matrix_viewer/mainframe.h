@@ -23,7 +23,7 @@ public:
   explicit MainFrame
   (
     const QString &name,
-    const Document & doc,
+    Document & doc,
     QWidget *parent = nullptr
   );
 
@@ -46,10 +46,12 @@ private:
 
   QToolButton
     *select_mode_button,
+    *drag_mode_button,
+    *erase_mode_button,
     *opengl_button,
     *antialias_button,
     *reset_button;
   QSlider *zoom_slider;
 
-  const Document & doc;
+  Document & doc;
 };

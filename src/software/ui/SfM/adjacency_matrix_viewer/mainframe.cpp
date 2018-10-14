@@ -22,7 +22,7 @@ QGraphicsView *MainFrame::view() const
   return static_cast<QGraphicsView *>(matching_pair_view);
 }
 
-MainFrame::MainFrame(const QString &name, const Document & doc, QWidget *parent)
+MainFrame::MainFrame(const QString &name, Document &doc, QWidget *parent)
   : QFrame(parent), doc(doc)
 {
   setFrameStyle(Sunken | StyledPanel);
@@ -67,10 +67,14 @@ MainFrame::MainFrame(const QString &name, const Document & doc, QWidget *parent)
   select_mode_button->setText(tr("Select"));
   select_mode_button->setCheckable(true);
   select_mode_button->setChecked(true);
-  QToolButton *drag_mode_button = new QToolButton;
+  drag_mode_button = new QToolButton;
   drag_mode_button->setText(tr("Drag"));
   drag_mode_button->setCheckable(true);
   drag_mode_button->setChecked(false);
+  erase_mode_button = new QToolButton;
+  erase_mode_button->setText(tr("Erase"));
+  erase_mode_button->setCheckable(true);
+  erase_mode_button->setChecked(false);
   antialias_button = new QToolButton;
   antialias_button->setText(tr("Antialiasing"));
   antialias_button->setCheckable(true);
@@ -92,12 +96,14 @@ MainFrame::MainFrame(const QString &name, const Document & doc, QWidget *parent)
   pointer_mode_group->setExclusive(true);
   pointer_mode_group->addButton(select_mode_button);
   pointer_mode_group->addButton(drag_mode_button);
+  pointer_mode_group->addButton(erase_mode_button);
 
   label_layout->addWidget(label);
   label_layout->addStretch();
   label_layout->addWidget(label2);
   label_layout->addWidget(select_mode_button);
   label_layout->addWidget(drag_mode_button);
+  label_layout->addWidget(erase_mode_button);
   label_layout->addStretch();
   label_layout->addWidget(antialias_button);
   label_layout->addWidget(opengl_button);
@@ -121,6 +127,7 @@ MainFrame::MainFrame(const QString &name, const Document & doc, QWidget *parent)
           this, SLOT(setResetButtonEnabled()));
   connect(select_mode_button, SIGNAL(toggled(bool)), this, SLOT(togglePointerMode()));
   connect(drag_mode_button, SIGNAL(toggled(bool)), this, SLOT(togglePointerMode()));
+  connect(erase_mode_button, SIGNAL(toggled(bool)), this, SLOT(togglePointerMode()));
   connect(antialias_button, SIGNAL(toggled(bool)), this, SLOT(toggleAntialiasing()));
   connect(opengl_button, SIGNAL(toggled(bool)), this, SLOT(toggleOpenGL()));
   connect(zoom_in_icon, SIGNAL(clicked()), this, SLOT(zoomIn()));
@@ -159,10 +166,12 @@ void MainFrame::setupMatrix()
 
 void MainFrame::togglePointerMode()
 {
-  matching_pair_view->setDragMode(select_mode_button->isChecked()
+  bool isInteract = (select_mode_button->isChecked() || erase_mode_button->isChecked());
+  matching_pair_view->setDragMode(isInteract
                                   ? QGraphicsView::RubberBandDrag
                                   : QGraphicsView::ScrollHandDrag);
-  matching_pair_view->setInteractive(select_mode_button->isChecked());
+  matching_pair_view->setInteractive(isInteract);
+  matching_pair_view->setEraseMode(erase_mode_button->isChecked());
 }
 
 void MainFrame::toggleOpenGL()

@@ -103,6 +103,69 @@ ceres::CostFunction * IntrinsicsToCostFunction
   }
 }
 
+double reprojError
+(
+  IntrinsicBase * intrinsic,
+  const Vec2 & observation,
+  const double* const cam_intrinsics,
+  const double* const cam_extrinsics,
+  const double* const pos_3dpoint
+)
+{
+  double residuals[2];
+  switch (intrinsic->getType())
+  {
+    case PINHOLE_CAMERA:
+    {
+      ResidualErrorFunctor_Pinhole_Intrinsic func{observation.data()};
+      func(cam_intrinsics, cam_extrinsics, pos_3dpoint, residuals);
+      break;
+    }
+    case PINHOLE_CAMERA_RADIAL1:
+    {
+      ResidualErrorFunctor_Pinhole_Intrinsic_Radial_K1 func{observation.data()};
+      func(cam_intrinsics, cam_extrinsics, pos_3dpoint, residuals);
+      break;
+    }
+    case PINHOLE_CAMERA_RADIAL3:
+    {
+      ResidualErrorFunctor_Pinhole_Intrinsic_Radial_K3 func{observation.data()};
+      func(cam_intrinsics, cam_extrinsics, pos_3dpoint, residuals);
+      break;
+    }
+    case PINHOLE_CAMERA_BROWN:
+    {
+      ResidualErrorFunctor_Pinhole_Intrinsic_Brown_T2 func{observation.data()};
+      func(cam_intrinsics, cam_extrinsics, pos_3dpoint, residuals);
+      break;
+    }
+    case PINHOLE_CAMERA_FISHEYE:
+    {
+      ResidualErrorFunctor_Pinhole_Intrinsic_Fisheye func{observation.data()};
+      func(cam_intrinsics, cam_extrinsics, pos_3dpoint, residuals);
+      break;
+    }
+    case CAMERA_SPHERICAL: // not implemented
+    default:
+      return 0.0;
+  }
+
+  return (residuals[0] * residuals[0]) + (residuals[1] * residuals[1]);
+}
+
+struct DiffFunctor
+{
+    template <typename T>
+    bool operator()(const T* const X, const T* const Y, T* residuals) const
+    {
+        residuals[0] = (X[0] - Y[0]);
+        residuals[1] = (X[1] - Y[1]);
+        residuals[2] = (X[2] - Y[2]);
+        return true;
+    }
+    static int num_residuals() { return 3; }
+};
+
 Bundle_Adjustment_Ceres::BA_Ceres_options::BA_Ceres_options
 (
   const bool bVerbose,
@@ -337,7 +400,7 @@ bool Bundle_Adjustment_Ceres::Adjust
    // For all visibility add reprojections errors:
   for (auto & structure_landmark_it : sfm_data.structure)
   {
-    // if structure is skipped and current landmark is not a ground point skip
+    // if structure is skipped and current landmark is not a ground point skip iteration
     bool has_ground_point = (ground_data_.count(structure_landmark_it.first) > 0);
     if (options.structure_opt == Structure_Parameter_Type::SKIP
       && !has_ground_point)
@@ -345,7 +408,10 @@ bool Bundle_Adjustment_Ceres::Adjust
 
     double* Xdata;
     if (has_ground_point)
+    {
+      std::cout << "using ground point" << std::endl;
       Xdata = ground_data_.at(structure_landmark_it.first).data();
+    }
     else
       Xdata = structure_landmark_it.second.X.data();
 
@@ -355,15 +421,38 @@ bool Bundle_Adjustment_Ceres::Adjust
       // Build the residual block corresponding to the track observation:
       const View * view = sfm_data.views.at(obs_it.first).get();
 
-      // TODO when ground data is aviable and square is used
-      // use other cost function
+      // when ground data is aviable and square is used
+      // use squared cost function
+      if (options.ground_cost == Ground_Cost::SQUARE && has_ground_point)
+      {
+          ceres::CostFunction* cost_function =
+              new ceres::AutoDiffCostFunction<DiffFunctor, 3, 3, 3>(
+                  new DiffFunctor());
+          // penalize difference between Xdata (which are the projected points) and
+          // their current non-projected counterpart
+          problem.AddResidualBlock(cost_function, nullptr,
+              Xdata, structure_landmark_it.second.X.data());
+          continue;
+      }
+
+      double distWeight = 0.0;
+      if (has_ground_point)
+      {
+        //distWeight = 1 / (ground_data_.at(structure_landmark_it.first) - structure_landmark_it.second.X).norm();
+        distWeight = 1 / reprojError(sfm_data.intrinsics.at(view->id_intrinsic).get(),
+            obs_it.second.x, &map_intrinsics.at(view->id_intrinsic)[0],
+            &map_poses.at(view->id_pose)[0], Xdata);
+        if (distWeight > 1e-4)
+          distWeight = 1.0;
+        std::cout << distWeight << std::endl;
+      }
 
       // Each Residual block takes a point and a camera as input and outputs a 2
       // dimensional residual. Internally, the cost function stores the observed
       // image location and compares the reprojection against the observation.
       ceres::CostFunction* cost_function =
         IntrinsicsToCostFunction(sfm_data.intrinsics.at(view->id_intrinsic).get(),
-                                 obs_it.second.x);
+                                 obs_it.second.x, distWeight);
 
       if (cost_function)
       {
@@ -375,7 +464,7 @@ bool Bundle_Adjustment_Ceres::Adjust
             &map_poses.at(view->id_pose)[0],
             Xdata);
         }
-        else
+        else // only for spherical
         {
           problem.AddResidualBlock(cost_function,
             p_LossFunction,

@@ -24,11 +24,18 @@ MainWindow::MainWindow(QWidget *parent)
   QMenuBar * menu_bar = new QMenuBar;
   QMenu * fileMenu = new QMenu(tr("&File"));
   menu_bar->addMenu(fileMenu);
+
   QAction * openAct = new QAction(tr("&Open..."), this);
   openAct->setShortcuts(QKeySequence::Open);
   openAct->setStatusTip(tr("Open an existing project"));
   connect(openAct, &QAction::triggered, this, &MainWindow::open);
   fileMenu->addAction(openAct);
+
+  QAction * saveAct = new QAction(tr("&Save..."), this);
+  saveAct->setShortcuts(QKeySequence::Save);
+  saveAct->setStatusTip(tr("Save current matches"));
+  connect(saveAct, &QAction::triggered, this, &MainWindow::save);
+  fileMenu->addAction(saveAct);
 
   QVBoxLayout *layout = new QVBoxLayout;
   layout->addWidget(menu_bar);
@@ -56,19 +63,47 @@ void MainWindow::open()
 
   const std::string m_matches_data_filename = matches_fileName.toStdString();
 
+  const QString features_dir = QFileDialog::getExistingDirectory(
+    this, tr("Choose the features directory"),
+    QFileInfo(sfm_data_fileName).path(), QFileDialog::ShowDirsOnly
+      | QFileDialog::DontResolveSymlinks);
+  if (features_dir.isEmpty())
+    return;
+
+  const std::string m_features_dir = features_dir.toStdString();
+
   populateScene(m_sfm_data_filename,
     QFileInfo(sfm_data_fileName).path().toStdString(),
-    m_matches_data_filename);
+    m_matches_data_filename, m_features_dir);
   view->view()->setScene(scene);
 
   emit view->resetView();
+}
+
+void MainWindow::save()
+{
+  const QString matches_fileName = QFileDialog::getSaveFileName(
+    this, tr("Choose a matches.X file"), QString(), tr("matches file (*.bin *.txt)"));
+  if (matches_fileName.isEmpty())
+    return;
+
+  if (!Save(doc.matches_provider->pairWise_matches_, matches_fileName.toStdString()))
+  {
+    std::cerr
+      << "Cannot save computed matches in: "
+      << matches_fileName.toStdString();
+    return;
+}
+
+
 }
 
 void MainWindow::populateScene
 (
   const std::string & sSfM_Data_Filename,
   const std::string & sMatchesDir,
-  const std::string & sMatchFile
+  const std::string & sMatchFile,
+  const std::string & sFeatureDir
 )
 {
   scene = new QGraphicsScene(this);
@@ -92,7 +127,7 @@ void MainWindow::populateScene
   //---------------------------------------
   // Init the regions_type used for this scene from the image describer file
   const std::string sImage_describer =
-    stlplus::create_filespec(sMatchesDir, "image_describer", "json");
+    stlplus::create_filespec(sFeatureDir, "image_describer", "json");
   std::unique_ptr<Regions> regions_type =
     Init_region_type_from_file(sImage_describer);
   if (!regions_type)
@@ -104,7 +139,7 @@ void MainWindow::populateScene
 
   // Read the features
   doc.feats_provider = std::make_shared<Features_Provider>();
-  if (!doc.feats_provider->load(doc.sfm_data, sMatchesDir, regions_type)) {
+  if (!doc.feats_provider->load(doc.sfm_data, sFeatureDir, regions_type)) {
     std::cerr << std::endl
       << "Invalid features." << std::endl;
     return;
